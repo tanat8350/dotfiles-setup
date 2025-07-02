@@ -56,8 +56,10 @@ if [ -n "$force_color_prompt" ]; then
   fi
 fi
 
+# prompt
 if [ "$color_prompt" = yes ]; then
-  PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+  # if want to show user and host, add `\u@\h`
+  PS1='${debian_chroot:+($debian_chroot)}\[\e[1;34m\][bash] \[\e[1;33m\]\t \[\e[1;36m\]\w \[\e[1;32m\]\n \[\e[0m\]'
 else
   PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
 fi
@@ -70,6 +72,12 @@ xterm* | rxvt*)
   ;;
 *) ;;
 esac
+
+# vi mode
+set -o vi
+bind 'set show-mode-in-prompt on'
+bind 'set vi-ins-mode-string \1\e[32;1m\2$  \e[0;36m\:\1\e[1m\2'
+bind 'set vi-cmd-mode-string \1\e[32;1m\2$  \e[0;36m\>\1\e[1m\2'
 
 # enable color support of ls and also add handy aliases
 if [ -x /usr/bin/dircolors ]; then
@@ -90,6 +98,12 @@ fi
 alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
+
+if [[ -f /usr/bin/snapper ]]; then
+  alias snapperl='sudo snapper list'
+  alias snapperc='sudo snapper create --description'
+fi
+
 
 # Add an "alert" alias for long running commands.  Use like so:
 #   sleep 10; alert
@@ -117,26 +131,7 @@ fi
 
 PATH=~/.console-ninja/.bin:$PATH
 
-# prompt
-export PS1='${debian_chroot:+($debian_chroot)}\[\e[1;34m\][bash] \[\e[1;33m\]\t \[\e[1;36m\]\w \[\e[1;32m\]\n \[\e[0m\]'
-
-# vi mode
-set -o vi
-bind 'set show-mode-in-prompt on'
-bind 'set vi-ins-mode-string \1\e[32;1m\2$  \e[0;36m\:\1\e[1m\2'
-bind 'set vi-cmd-mode-string \1\e[32;1m\2$  \e[0;36m\>\1\e[1m\2'
-
 # welcome banner
-# https://patorjk.com/software/taag/#p=testall&h=0&v=0&f=RubiFont&t=Bash
-# font RubiFont
-# echo "
-# ▗▄▄▖  ▗▄▖  ▗▄▄▖▗▖ ▗▖
-# ▐▌ ▐▌▐▌ ▐▌▐▌   ▐▌ ▐▌  v${BASH_VERSION%\(*}
-# ▐▛▀▚▖▐▛▀▜▌ ▝▀▚▖▐▛▀▜▌  Host uptime: $(
-#   uptime | sed -E 's/^[^,]*up *//; s/, *[[:digit:]]* users.*//; s/min/minutes/; s/([[:digit:]]+):0?([[:digit:]]+)/\1hr \2min/'
-# )
-# ▐▙▄▞▘▐▌ ▐▌▗▄▄▞▘▐▌ ▐▌
-# "
 echo "
     Bash v${BASH_VERSION%\(*}
     Host uptime: $(
@@ -188,4 +183,25 @@ else
 fi
 unset __conda_setup
 # <<< conda initialize <<<
+
+function eval-if-exists() {
+  if [[ -f "/usr/bin/$1" ]]; then
+    eval "$($1 $2)"
+  fi
+}
+
+eval-if-exists fzf '--bash'
+eval-if-exists zoxide 'init bash'
+
+function y() {
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	yazi "$@" --cwd-file="$tmp"
+	IFS= read -r -d '' cwd < "$tmp"
+	[ -n "$cwd" ] && [ "$cwd" != "$PWD" ] && builtin cd -- "$cwd"
+	rm -f -- "$tmp"
+}
+
+function reload() {
+  source ~/.bashrc
+}
 
