@@ -1,0 +1,23 @@
+set clipboard=unnamed,unnamedplus
+
+" search
+set hlsearch
+set smartcase
+
+syntax on
+
+" cursors
+let &t_SI = "\e[6 q"
+let &t_EI = "\e[2 q"
+
+let mapleader=" "
+
+nmap <leader>p "0p
+nmap <leader>P "0P
+
+nmap U <C-r>
+
+nmap <C-c> yy
+nmap <C-v> p
+
+nmap <C-a> ggVG
