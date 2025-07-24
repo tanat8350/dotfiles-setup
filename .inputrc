@@ -1,0 +1,33 @@
+# if put inside `.bashrc`, need to prepend 'bind' and put config in quotes
+# eg. bind "set show-all-if-ambiguous on"
+
+# completion
+# 1 tap to show possible completions (default = 2)
+# if `TAB:menu-complete`, but this one not, the completions will not get shown
+set show-all-if-ambiguous on
+# tab to select next (cycled)
+TAB:menu-complete
+set completion-ignore-case on
+# results only 1 columns
+# set completion-display-width 0
+# idk
+set completion-query-items 1000
+
+# appearance
+# color types (file, dir)
+set colored-stats On
+# highlight typed chars
+set colored-completion-prefix On
+
+# ^C no longer shows on C-c keypress
+set echo-control-characters off
+
+# history search
+# arrow up/down
+"\e[A": history-search-backward
+"\e[B": history-search-forward
+
+# # key binding
+# "\C-a": "echo 'test'\n"
+# # alt s
+# "\es": "\C-asudo \C-e"
