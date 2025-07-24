@@ -35,9 +35,10 @@ if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
   debian_chroot=$(cat /etc/debian_chroot)
 fi
 
+color_prompt=false
 # set a fancy prompt (non-color, unless we know we "want" color)
 case "$TERM" in
-xterm-color | *-256color) color_prompt=yes ;;
+xterm-color | *-256color | *-kitty | alacritty) color_prompt=true ;;
 esac
 
 # uncomment for a colored prompt, if the terminal has the capability; turned
@@ -50,16 +51,23 @@ if [ -n "$force_color_prompt" ]; then
     # We have color support; assume it's compliant with Ecma-48
     # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
     # a case would tend to support setf rather than setaf.)
-    color_prompt=yes
-  else
-    color_prompt=
+    color_prompt=true
   fi
 fi
 
 # prompt
-if [ "$color_prompt" = yes ]; then
+if $color_prompt; then
   # if want to show user and host, add `\u@\h`
-  PS1='${debian_chroot:+($debian_chroot)}\[\e[1;34m\][bash] \[\e[1;33m\]\t \[\e[1;36m\]\w \[\e[1;32m\]\n \[\e[0m\]'
+  # PS1='${debian_chroot:+($debian_chroot)}\[\e[1;34m\][bash] \[\e[1;33m\]\t \[\e[1;36m\]\w \[\e[1;32m\]\n \[\e[0m\]'
+  # \t time (HH:MM:SS)
+  # \w working directory
+  # \u@\h user@host
+  blue='\[\e[1;34m\]'
+  yellow='\[\e[1;33m\]'
+  cyan='\[\e[1;36m\]'
+  green='\[\e[1;32m\]'
+  reset='\[\e[0m\]'
+  PS1="# ${debian_chroot:+($debian_chroot)}${blue}[bash] ${yellow}\t ${cyan}\w ${reset}\n "
 else
   PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
 fi
@@ -74,10 +82,21 @@ xterm* | rxvt*)
 esac
 
 # vi mode
+# cannot `set -o vi` in .inputrc
 set -o vi
-bind 'set show-mode-in-prompt on'
-bind 'set vi-ins-mode-string \1\e[32;1m\2$  \e[0;36m\:\1\e[1m\2'
-bind 'set vi-cmd-mode-string \1\e[32;1m\2$  \e[0;36m\>\1\e[1m\2'
+if [[ -o vi ]]; then
+  # emacs = @
+  # cannot change color when empty indicator (everything goes wrong)
+  # cursor also
+  bind 'set show-mode-in-prompt on'
+  yellow='\1\e[33m\2'
+  reset='\1\e[0m\2'
+  cursor_block='\1\e[2 q\2'
+  cursor_normal='\1\e[6 q\2'
+  bind "set vi-cmd-mode-string \"${cursor_block}${yellow}  N >${reset}\""
+  bind "set vi-ins-mode-string \"${cursor_normal} \""
+
+fi
 
 # enable color support of ls and also add handy aliases
 if [ -x /usr/bin/dircolors ]; then
@@ -94,29 +113,9 @@ fi
 # colored GCC warnings and errors
 #export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
 
-# some more ls aliases
-alias ll='ls -alF'
-alias la='ls -A'
-alias l='ls -CF'
-
-if [[ -f /usr/bin/snapper ]]; then
-  alias snapperl='sudo snapper list'
-  alias snapperc='sudo snapper create --description'
-fi
-
-
 # Add an "alert" alias for long running commands.  Use like so:
 #   sleep 10; alert
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
-
-# Alias definitions.
-# You may want to put all your additions into a separate file like
-# ~/.bash_aliases, instead of adding them here directly.
-# See /usr/share/doc/bash-doc/examples in the bash-doc package.
-
-if [ -f ~/.bash_aliases ]; then
-  . ~/.bash_aliases
-fi
 
 # enable programmable completion features (you don't need to enable
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile
@@ -132,29 +131,31 @@ fi
 PATH=~/.console-ninja/.bin:$PATH
 
 # welcome banner
-echo "
-    Bash v${BASH_VERSION%\(*}
-    Host uptime: $(
-    uptime -p | sed 's/up //'
-)
-"
+function banner() {
+  blue='\033[0;34m'
+  yellow='\033[0;33m'
+  reset='\033[0m'
+  echo -e "
+    ${blue}Bash ${yellow}v${BASH_VERSION%\(*}
+    ${reset}Uptime: ${blue}$(uptime -p | sed 's/up //')${reset}
+    "
+}
+banner
 
 # nvm
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"                   # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion
 
-# bashrc-extra
-source ~/.bashrc-extra 2>/dev/null
-
 # fnm
-if [[ -d "$HOME/.local/share/fnm" ]]; then
-  export PATH="/home/tanat/.local/share/fnm:$PATH"
+FNM_PATH="$HOME/.local/share/fnm"
+if [[ -d "$FNM_PATH" ]]; then
+  export PATH="$FNM_PATH:$PATH"
   eval "$(fnm env)"
 fi
 
 # pnpm
-export PNPM_HOME="/home/tanat/.local/share/pnpm"
+export PNPM_HOME="$HOME/.local/share/pnpm"
 case ":$PATH:" in
 *":$PNPM_HOME:"*) ;;
 *) export PATH="$PNPM_HOME:$PATH" ;;
@@ -164,44 +165,29 @@ if [[ -f "$HOME/.cargo/env" ]]; then
   . "$HOME/.cargo/env"
 fi
 
-# conda
-if [[ -f "$HOME/miniforge3/bin/conda" ]]; then
-  eval "$(/home/tanat/miniforge3/bin/conda shell.bash hook)"
-fi
-
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/tanat/miniforge3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/home/tanat/miniforge3/etc/profile.d/conda.sh" ]; then
-        . "/home/tanat/miniforge3/etc/profile.d/conda.sh"
-    else
-        export PATH="/home/tanat/miniforge3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
+# conda (miniconda aur)
+conda_path='/opt/miniconda3/etc/profile.d/conda.sh'
+[[ -f "$conda_path" ]] && source "$conda_path"
 
 function eval-if-exists() {
   if [[ -f "/usr/bin/$1" ]]; then
-    eval "$($1 $2)"
+    # eval "$($1 $2)"
+    eval "$($@)"
   fi
 }
 
-eval-if-exists fzf '--bash'
-eval-if-exists zoxide 'init bash'
+# eval-if-exists fzf '--bash'
+# eval-if-exists zoxide 'init bash'
+eval-if-exists fzf --bash
+eval-if-exists zoxide init bash
+eval-if-exists atuin init bash
+# required by atuin
+[[ -f '/usr/bin/atuin' && -f ~/.bash-preexec.sh ]] && source ~/.bash-preexec.sh
 
-function y() {
-	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
-	yazi "$@" --cwd-file="$tmp"
-	IFS= read -r -d '' cwd < "$tmp"
-	[ -n "$cwd" ] && [ "$cwd" != "$PWD" ] && builtin cd -- "$cwd"
-	rm -f -- "$tmp"
+function source-if-exists() {
+  [[ -f "$1" ]] && source "$1"
 }
 
-function reload() {
-  source ~/.bashrc
-}
-
+source-if-exists "$HOME/.config/bash/alias.sh"
+source-if-exists "$HOME/.local/share/blesh/ble.sh"
+[[ -f /opt/miniconda3/etc/profile.d/conda.sh ]] && source /opt/miniconda3/etc/profile.d/conda.sh
