@@ -4,14 +4,18 @@ alias l='ls -CF --color=auto'
 alias ls='ls --color=auto'
 alias dir='dir --color=auto'
 alias vdir='vdir --color=auto'
+alias grep='grep --color=auto'
+alias grepi='grep --ignore-case'
+alias rgi='rg --ignore-case'
 
 alias bg='setsid -f'
+
+alias xpropc='xprop | grep WM_CLASS'
 
 function reload() {
   source ~/.bashrc
 }
 
-alias grepi='grep --ignore-case'
 function envi() {
   env | grep --ignore-case $1
 }
