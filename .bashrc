@@ -38,7 +38,7 @@ fi
 color_prompt=false
 # set a fancy prompt (non-color, unless we know we "want" color)
 case "$TERM" in
-xterm-color | *-256color | *-kitty | alacritty) color_prompt=true ;;
+xterm-color | *-256color | *-kitty | alacritty | wezterm*) color_prompt=true ;;
 esac
 
 # uncomment for a colored prompt, if the terminal has the capability; turned
@@ -171,3 +171,4 @@ function source_in_folder {
 }
 source_in_folder "$HOME/.config/bash"
 banner_bash
+
