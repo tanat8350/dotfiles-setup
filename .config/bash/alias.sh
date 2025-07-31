@@ -12,6 +12,8 @@ alias bg='setsid -f'
 
 alias xpropc='xprop | grep WM_CLASS'
 
+alias sp="source $HOME/.profile"
+
 function reload() {
   source ~/.bashrc
 }
